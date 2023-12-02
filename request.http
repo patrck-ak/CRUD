@@ -1,0 +1,6 @@
+
+GET /auth/login
+{
+  "name": "patrick",
+  "password": "1234"
+}

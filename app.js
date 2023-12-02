@@ -4,17 +4,31 @@ const mongoose = require('mongoose')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const User = require('./models/User')
+const bodyParser = require('body-parser')
+const path = require('path')
 
+
+// configuração server
 const app = express()
 const port = 3000;
 const internalServerError = 'Erro interno, tente novamente mais tarde.'
 
-// configurar reposta json
+
+// configuração render
+app.engine("html", require("ejs").renderFile);
+app.set("view engine", "html");
+app.use("/public", express.static(path.join(__dirname, "public")));
+app.set("views", path.join(__dirname, "/views"));
+
+// configuração bodyparser
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// configuração reposta json
 app.use(express.json())
 
 //! Public Route (Página inicial)
 app.get('/', (req, res) => {
-  res.status(200).json({msg: "Bem-Vindo a nossa API :)"})
+  res.render('redirect')
 })
 
 
@@ -29,6 +43,7 @@ app.get('/users/:id', checkToken, async(req, res) => {
       return res.status(404).json({msg: 'Usuário não encontrado.'})
     }
     res.status(200).json({msg: user})
+    res.render('index')
   } catch (err) {
     console.log(err)
     res.status(500).json({msg: internalServerError})
@@ -54,6 +69,11 @@ function checkToken(req, res, next) {
 }
 
 //! Validar usuario
+
+app.get('/auth/login', async(req, res) => {
+  res.render('login')
+})
+
 app.post('/auth/login', async(req, res) => {
   const {name, password} = req.body
 
@@ -80,7 +100,8 @@ app.post('/auth/login', async(req, res) => {
     const secret = process.env.SECRET
     const token = jwt.sign({id: user._id}, secret)
 
-    res.status(200).json({msg: 'logado com sucesso.', token})
+    lstorage.setItem('token', token);
+    res.status(200).render('index').json({msg: 'logado com sucesso.', token})
 
   } catch (err) {
     console.error(err)
