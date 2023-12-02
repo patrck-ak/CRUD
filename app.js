@@ -7,16 +7,53 @@ const User = require('./models/User')
 
 const app = express()
 const port = 3000;
+const internalServerError = 'Erro interno, tente novamente mais tarde.'
 
 // configurar reposta json
 app.use(express.json())
 
-// Public Route (Página inicial)
+//! Public Route (Página inicial)
 app.get('/', (req, res) => {
   res.status(200).json({msg: "Bem-Vindo a nossa API :)"})
 })
 
-// validar usuario
+
+//! Private Route (Página de usuario logado)
+app.get('/users/:id', checkToken, async(req, res) => {
+  const id = req.params.id
+
+  // checar usuario
+  try {
+    const user = await User.findById(id, '-password')
+    if(!user) {
+      return res.status(404).json({msg: 'Usuário não encontrado.'})
+    }
+    res.status(200).json({msg: user})
+  } catch (err) {
+    console.log(err)
+    res.status(500).json({msg: internalServerError})
+  }
+})
+
+// função para verificar token na rota privada
+function checkToken(req, res, next) {
+  const authHeader = req.headers['authorization']
+  //* pega o retorno do token e separa nome | valor e retorna valor
+  const token = authHeader && authHeader.split(" ")[1] 
+  if(!token){
+    return res.status(401).json({msg: 'Acesso negado.'})
+  }
+
+  try {
+    const secret = process.env.secret
+    jwt.verify(token, secret)
+    next()
+  } catch (err) {
+    return res.status(400).json({msg: 'Token Inválido.'})
+  }
+}
+
+//! Validar usuario
 app.post('/auth/login', async(req, res) => {
   const {name, password} = req.body
 
@@ -27,13 +64,13 @@ app.post('/auth/login', async(req, res) => {
     return res.status(422).json({msg: 'Senha é obrigatoria!'})
   }
 
-  // checar usuario
+  // Checar usuario
   const user = await User.findOne({name: name})
   if(!user) {
     return res.status(404).json({msg: 'Usuário não encontrado.'})
   }
 
-  // descriptar senha
+  // Descriptar senha
   const checkPassword = await bcrypt.compare(password, user.password)
   if(!checkPassword) {
     return res.status(422).json({msg: 'Senha incorreta.'})
@@ -46,31 +83,27 @@ app.post('/auth/login', async(req, res) => {
     res.status(200).json({msg: 'logado com sucesso.', token})
 
   } catch (err) {
-    console.log(err)
-    res.status(500).json({msg: err})
+    console.error(err)
+    res.status(500).json({msg: internalServerError})
   }
 
 })
 
 
-// registrar usuario DB
+//! Registrar usuario DB
 app.post('/auth/register', async(req, res) => {
   const {name, email, password, confirmpassword, level} = req.body
   // validações
 
   if(!name) { 
     return res.status(422).json({msg: 'Nome é obrigatorio!'})
-  }
-  if(!email) { 
+  } if(!email) { 
     return res.status(422).json({msg: 'E-Mail é obrigatorio!'})
-  }
-  if(!password) { 
+  } if(!password) { 
     return res.status(422).json({msg: 'Senha é obrigatoria!'})
-  }
-  if(password !== confirmpassword){
+  } if(password !== confirmpassword){
     return res.status(442).json({msg: 'Senhas não batem.'})
-  }
-  if(!level) {
+  } if(!level) {
     return res.status(442).json({msg: 'Nivel de permissão é necessário.'})
   }
 
@@ -85,15 +118,16 @@ app.post('/auth/register', async(req, res) => {
     return res.status(422).json({msg: "Usuário já cadastrado"})
   }
  
-  // criptar senha DB
+  //! criptar senha DB
   const salt = await bcrypt.genSalt(12)
   const passwordHash = await bcrypt.hash(password, salt)
 
-  // criar usuario na DB
+  //! criar usuario na DB
   const user = new User({
     name,
     email,
     password: passwordHash,
+    level,
   })
 
   try { // tenta criar um usuario
@@ -102,15 +136,16 @@ app.post('/auth/register', async(req, res) => {
 
   } catch (error) { // retorna erro caso tenha algum
     console.log(error)
-    res.status(500).json({msg: error})
+    res.status(500).json({msg: internalServerError})
   }
 
 })
 
-// database user
+// Database user
 const dbUser = process.env.DB_USER
 const dbPass = process.env.DB_PASS
 
+//! Conexão a DB (dados no .env)
 mongoose.connect(`mongodb+srv://${dbUser}:${dbPass}@cluster0.zausybw.mongodb.net/`)
     .then(app.listen(port, () => {console.log('banco conectado!\n' + 'app rodando na porta ' + port)}))
     .catch((err) => {console.log(err)})
