@@ -1,15 +1,18 @@
 require('dotenv').config()
-const express = require('express')
-const mongoose = require('mongoose')
-const bcrypt = require('bcrypt')
-const jwt = require('jsonwebtoken')
-const User = require('./models/User')
-const bodyParser = require('body-parser')
-const path = require('path')
 
+const express = require('express');
+const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const bodyParser = require('body-parser');
+const path = require('path');
+
+// importar models do moongose
+const User = require('./models/User');
+const { access } = require('fs');
 
 // configuração server
-const app = express()
+const app = express();
 const port = 3000;
 const internalServerError = 'Erro interno, tente novamente mais tarde.'
 
@@ -24,19 +27,18 @@ app.set("views", path.join(__dirname, "/views"));
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // configuração reposta json
-app.use(express.json())
+app.use(express.json());
 
 //! Public Route (Página inicial)
 app.get('/', (req, res) => {
   res.render('redirect')
 })
 
-
 //! Private Route (Página de usuario logado)
 app.get('/users/:id', checkToken, async(req, res) => {
   const id = req.params.id
 
-  // checar usuario
+  //! checar usuario
   try {
     const user = await User.findById(id, '-password')
     if(!user) {
@@ -68,10 +70,13 @@ function checkToken(req, res, next) {
   }
 }
 
-//! Validar usuario
 
+//! Validar usuario
 app.get('/auth/login', async(req, res) => {
-  res.render('login')
+  const secret = process.env.SECRET
+  const token = jwt.sign({id: user._id}, secret)
+
+  res.render ('login')
 })
 
 app.post('/auth/login', async(req, res) => {
@@ -79,36 +84,28 @@ app.post('/auth/login', async(req, res) => {
 
   if(!name) { 
     return res.status(422).json({msg: 'Nome é obrigatorio!'})
-  }
-  if(!password) { 
+  } if(!password) { 
     return res.status(422).json({msg: 'Senha é obrigatoria!'})
   }
-
   // Checar usuario
   const user = await User.findOne({name: name})
   if(!user) {
     return res.status(404).json({msg: 'Usuário não encontrado.'})
   }
-
-  // Descriptar senha
+  // Campara as senhas senha
   const checkPassword = await bcrypt.compare(password, user.password)
   if(!checkPassword) {
     return res.status(422).json({msg: 'Senha incorreta.'})
   }
-
   try {
     const secret = process.env.SECRET
     const token = jwt.sign({id: user._id}, secret)
-
-    lstorage.setItem('token', token);
-    res.status(200).render('index').json({msg: 'logado com sucesso.', token})
-
+    res.status(200).cookie('access_token', 'Bearer ' + token).render('index')
   } catch (err) {
     console.error(err)
     res.status(500).json({msg: internalServerError})
-  }
-
-})
+    
+  }})
 
 
 //! Registrar usuario DB
@@ -159,10 +156,27 @@ app.post('/auth/register', async(req, res) => {
     console.log(error)
     res.status(500).json({msg: internalServerError})
   }
-
 })
 
-// Database user
+//! Buscar usuario
+app.post('/user/login/search', async(req, res) => {
+  const {name, searched} = req.body
+  const user = await User.findOne({name: name})
+  const search = await User.findOne({name: searched})
+
+  try {
+    const salt = await bcrypt.genSalt(12)
+    const passwordHash = await bcrypt.hash(search.password, salt)
+
+    res.json({msg: 'usuario encontrado: ' + search.name + ' ' + passwordHash})
+  } catch (err) {
+    console.log(err)
+    res.status(500).json({msg: internalServerError})
+  }
+})
+
+//* Database user
+//! ALTERE NO .ENV
 const dbUser = process.env.DB_USER
 const dbPass = process.env.DB_PASS
 

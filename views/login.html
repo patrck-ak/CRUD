@@ -14,15 +14,20 @@
 
 <body>
 
+
   <form method="post">
-    <input type="hidden" name="token" value="">
+
+    <span class="infobox ">
+      <input class="infobox" type="text" name="infobox">
+    </span>
+
     <div class="limiter">
       <span class="row">
-        <input type="text" name="name" id="name" placeholder="User ID" class="">
+        <input type="text" name="name" id="name" placeholder="User ID" class="input">
       </span>
 
       <span class="row">
-        <input type="password" name="password" id="password" placeholder="Password" class="mt-2 ">
+        <input type="password" name="password" id="password" placeholder="Password" class="mt-2 input">
       </span>
 
       <span class="input-group mt-2 center">
@@ -37,7 +42,6 @@
   </form>
 
   <style>
-
     
     * {
       user-select: none;
@@ -45,25 +49,32 @@
     }
 
     body {
+      display: flex;
+      justify-content: center;
       background: rgb(64,66,82);
-      background: linear-gradient(280deg, rgba(64,66,82,1) 0%, rgba(52,58,64,1) 48%, rgba(33,37,41,1) 100%);    }
+      background: linear-gradient(280deg, rgba(64,66,82,1) 0%, rgba(52,58,64,1) 48%, rgba(33,37,41,1) 100%)
+    }
+
 
     .limiter {
-      position: absolute;
-      top: 30vh;
-      left: 43vw;
+      padding-top: 25vh;
     }
     
-    input {
+    .input {
       padding: 0.2em;
       background: #f4f4f4;
       border: #1f1f1f solid 3px;
       border-radius: 5px;
-    } input:hover {
+    } .input:hover {
       transition: .3s ease-in-out;
       border: #9b4646 solid 3px;
     }
     
+    .infobox {
+      visibility: collapse;
+      margin-top: 15px;      
+    }
+
     input {
       outline: none;
     } .btn-dark:hover{
