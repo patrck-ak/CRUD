@@ -8,8 +8,8 @@ const bodyParser = require('body-parser');
 const path = require('path');
 
 // importar models do moongose
-const User = require('./models/User');
 const { access } = require('fs');
+const User = require('./models/User');
 
 // configuração server
 const app = express();
@@ -76,7 +76,7 @@ app.get('/auth/login', async(req, res) => {
   const secret = process.env.SECRET
   const token = jwt.sign({id: user._id}, secret)
 
-  res.render ('login')
+  res.render('login')
 })
 
 app.post('/auth/login', async(req, res) => {
